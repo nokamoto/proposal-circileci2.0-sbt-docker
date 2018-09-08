@@ -1,0 +1,44 @@
+version: 2
+jobs:
+  test:
+    docker:
+      - image: openjdk:8u181
+    steps:
+      - restore_cache:
+          key: sbt-cache
+      - checkout
+      - run: curl -Ls https://git.io/sbt > /usr/local/bin/sbt
+      - run: chmod u+x /usr/local/bin/sbt
+      - run: sbt scalafmt::test test:scalafmt::test sbt:scalafmt::test test universal:packageZipTarball
+      - save_cache:
+          key: sbt-cache
+          paths:
+            - "/root/.ivy2/cache"
+            - "/root/.sbt"
+            - "/root/.m2"
+      - save_cache:
+          key: sbt-universal-{{ .Revision }}
+          paths:
+            - "target/universal"
+  build:
+    docker:
+      - image: docker:18.06.0-ce-git
+    steps:
+      - checkout
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - restore_cache:
+          key: sbt-universal-{{ .Revision }}
+      - run:
+          VERSION=$(cat VERSION | tr -d '\n') &&
+          docker login -u $DOCKER_USER -p $DOCKER_PASS &&
+          docker build -t nokamoto13/proposal-circileci2.0-sbt-docker:${VERSION} --build-arg VERSION=${VERSION} . &&
+          docker push nokamoto13/proposal-circileci2.0-sbt-docker:${VERSION}
+workflows:
+  version: 2
+  ci:
+    jobs:
+      - test
+      - build:
+          requires:
+            - test
