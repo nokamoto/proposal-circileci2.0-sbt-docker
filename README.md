@@ -10,3 +10,9 @@ VERSION=$(cat VERSION | tr -d '\n')
 
 docker build -t nokamoto/proposal-circileci2.0-sbt-docker:${VERSION} --build-arg VERSION=${VERSION} .
 ```
+
+## Run
+
+```
+docker run --rm -v `pwd`/application.conf:/application.conf nokamoto/proposal-circileci2.0-sbt-docker:${VERSION} -Dconfig.file=/application.conf
+```
